@@ -19,6 +19,7 @@ inletsPU=''
 #Set these values to your particular requirements
 dx=0.0001
 dt=0.00008
+shifts=np.array([-1593.39,-2302.05,-11046.6])
 
 trueInletIndex=5
 maxVelIN=0.01
@@ -40,10 +41,10 @@ for i in f:
 
     coordsList.append([i[1],i[2],i[3]])
     areaList.append(i[5])
-
+    c = transform_to_physical(np.array(coordsList[-1]),dx,shifts)
 f.close()
 
-qIN = maxVelIN*areaList[trueInletIndex]
+qIN = 0.5*maxVelIN*areaList[trueInletIndex]
 areaSum = sum(areaList) - areaList[trueInletIndex] - sum(areaList[j] for j in knownLets)
 predictedFractions = ''
 
@@ -52,7 +53,7 @@ for i in range(len(areaList)):
     
     if i==trueInletIndex:
         profile+="0.5 "+str(maxVelIN)+"\n10.0 "+str(maxVelIN)
-        predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(1.0) + '\n'
+        predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(1.0) + ' ' + str(areaList[i]) + '\n'
     elif i in knownLets:
         vmax = 2.0*knownRates[knownLets.index(i)][1]*qIN/areaList[i]
         
@@ -61,7 +62,7 @@ for i in range(len(areaList)):
 
         print(i,vmax )
         profile+="0.5 "+str(-1.0*vmax)+"\n10.0 "+str(-1.0*vmax)
-        predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(knownRates[knownLets.index(i)][1]) + '\n'
+        predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(knownRates[knownLets.index(i)][1]) + ' ' + str(areaList[i]) + '\n'
     else:
         #vmax = 2.0*(1.0 - outletRate - totalKnown)*qIN/(areaList[i]*(len(areaList)-len(knownLets)-1)) #even distribution of flow to unassigned outlets
         vmax = 2.0*(1.0 - outletRate - totalKnown)*qIN/(areaSum) #distribution of flow to unassigned outlets based on area
@@ -70,12 +71,12 @@ for i in range(len(areaList)):
             globalVMax = vmax
         print(i,vmax)
         profile+="0.5 "+str(-1.0*vmax)+"\n10.0 "+str(-1.0*vmax)
-        predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(0.5*vmax*areaList[i]/qIN) + '\n'
+        predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(0.5*vmax*areaList[i]/qIN) + ' ' + str(areaList[i]) + '\n'
     with open("INLET"+str(i)+"_VELOCITY.txt", "w") as outxml:
         outxml.write(profile)
     outxml.close()
 
-with open("PredicedFlowFractions.txt", "w") as outxml:
+with open("PredictedFlowFractions.txt", "w") as outxml:
     outxml.write(predictedFractions)
 outxml.close()
 print("Global VMax = ", globalVMax, ", for estimated Ma of ", 3*globalVMax*dt/dx)

@@ -11,3 +11,6 @@ python3 VelocityFileGeneration.py [inlets_radius.txt from voxelizer]
 
 python3 weightsReader.py [filename.txt.weights.txt]
 - reads weights file and returns statistics on number of points and average values
+
+python3 FlowFractionAnalysis.py [PredictedFlowFractions.txt inletResultFile.txt]
+- compares observed flow fractions at domain outlets to imposed values (both velocity controlled (as inlets) and pressure outlets)
