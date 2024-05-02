@@ -1,6 +1,6 @@
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
+#from mpl_toolkits.mplot3d import Axes3D
+#import matplotlib.pyplot as plt
 import scipy.optimize
 import functools
 from scipy.optimize import leastsq

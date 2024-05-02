@@ -87,12 +87,18 @@ if __name__ == "__main__":
 
       ax = fig.add_subplot(122, projection='3d')
       ax.scatter(adf[adf['iolet_number'] == let]["x"], adf[adf['iolet_number'] == let]["y"], adf[adf['iolet_number'] == let]["nodeWeights"])
-
-      plt.title('This should be outline and weights of inlet plane' + str(let) + ' on Mesh' + meshNum)
-      fig.savefig("InletImages/Mesh" + meshNum + "Inlet" + str(let) + "_results.png")
-      plt.close()
-
-      np.savetxt("out" + str(let) + ".txt.weights.txt", adf[adf['iolet_number'] == let][['x','y','z','nodeWeights']].values, fmt='%d %d %d %f', delimiter=' ')
+     
+      if (letType == 'INLET'):
+          plt.title('This should be outline and weights of inlet plane' + str(let) + ' on Mesh' + meshNum)
+          fig.savefig("InletImages/Mesh" + meshNum + "Inlet" + str(let) + "_results.png")
+          plt.close()
+          np.savetxt("in" + str(let) + ".txt.weights.txt", adf[adf['iolet_number'] == let][['x','y','z','nodeWeights']].values, fmt='%d %d %d %f', delimiter=' ')
+      else:
+          plt.title('This should be outline and weights of outlet plane' + str(let) + ' on Mesh' + meshNum)
+          fig.savefig("OutletImages/Mesh" + meshNum + "Outlet" + str(let) + "_results.png")
+          plt.close()
+          np.savetxt("out" + str(let) + ".txt.weights.txt", adf[adf['iolet_number'] == let][['x','y','z','nodeWeights']].values, fmt='%d %d %d %f', delimiter=' ')
+      
 
      
 

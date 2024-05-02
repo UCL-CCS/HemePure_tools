@@ -1,8 +1,8 @@
-import matplotlib
-matplotlib.use("Agg")
+#import matplotlib
+#matplotlib.use("Agg")
 
 import numpy as np
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import pandas as pd
 import fit_plane
 import plot_plane
@@ -97,23 +97,23 @@ if __name__ == "__main__":
 
           print(np.degrees(azim), np.degrees(elev))
 
-          fig = plt.figure()
-          ax = fig.add_subplot(121, projection='3d')
-          ax.scatter(bdf[bdf['iolet_number'] == let]["x"], bdf[bdf['iolet_number'] == let]["y"], bdf[bdf['iolet_number'] == let]["z"])
-          ax.azim = np.degrees(azim)
-          ax.elev = np.degrees(elev)
+          #fig = plt.figure()
+          #ax = fig.add_subplot(121, projection='3d')
+          #ax.scatter(bdf[bdf['iolet_number'] == let]["x"], bdf[bdf['iolet_number'] == let]["y"], bdf[bdf['iolet_number'] == let]["z"])
+          #ax.azim = np.degrees(azim)
+          #ax.elev = np.degrees(elev)
 
-          ax = fig.add_subplot(122, projection='3d')
-          ax.scatter(adf[adf['iolet_number'] == let]["x"], adf[adf['iolet_number'] == let]["y"], adf[adf['iolet_number'] == let]["nodeWeights"])
+          #ax = fig.add_subplot(122, projection='3d')
+          #ax.scatter(adf[adf['iolet_number'] == let]["x"], adf[adf['iolet_number'] == let]["y"], adf[adf['iolet_number'] == let]["nodeWeights"])
 
-          if letType == 'INLET':
-              plt.title('This should be outline and weights of inlet plane' + str(let) + ' on Mesh' + meshNum)
-              fig.savefig("InletImages/Mesh" + meshNum + "Inlet" + str(let) + "_results.png")
-          else:
-              plt.title('This should be outline and weights of outlet plane' + str(let) + ' on Mesh' + meshNum)
-              fig.savefig("InletImages/Mesh" + meshNum + "Outlet" + str(let) + "_results.png")
+          #if letType == 'INLET':
+          #    plt.title('This should be outline and weights of inlet plane' + str(let) + ' on Mesh' + meshNum)
+          #    fig.savefig("InletImages/Mesh" + meshNum + "Inlet" + str(let) + "_results.png")
+          #else:
+          #    plt.title('This should be outline and weights of outlet plane' + str(let) + ' on Mesh' + meshNum)
+          #    fig.savefig("OutletImages/Mesh" + meshNum + "Outlet" + str(let) + "_results.png")
 
-          plt.close()
+          #plt.close()
 
 
 
