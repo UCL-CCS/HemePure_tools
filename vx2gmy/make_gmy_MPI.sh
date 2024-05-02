@@ -1,6 +1,6 @@
 # !/bin/bash
 
-VX2GMYPATH=/net/storeptr1/heme/HemePure_JM/HemePure_tools/vx2gmy
+VX2GMYPATH=/work/e723/e723/jmseavea/codes/HemePure_tools/vx2gmy
 
 # Check that enough arguments have been given
 if [[ $# -ne 4 ]]; then

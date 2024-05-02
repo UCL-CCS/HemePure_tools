@@ -726,7 +726,9 @@ void writeXML(const pluint num_openings, double dx, double shift_x, double shift
 	for (pluint i = 0; i < num_openings; ++i) {
 		if (openings[i].type == 2) { // inlets
 			inletnumber++;
-			myfile << inletnumber << "," << 0.5*(openings[i].innerRadius + openings[i].outerRadius)*dx << "," << openings[i].area*dx*dx << "\n";
+
+			myfile << inletnumber << "," << openings[i].center[0] << "," << openings[i].center[1] << "," << openings[i].center[2] << "," << 0.5*(openings[i].innerRadius + openings[i].outerRadius)*dx << "," << openings[i].area*dx*dx << "\n";
+			//myfile << inletnumber << "," << 0.5*(openings[i].innerRadius + openings[i].outerRadius)*dx << "," << openings[i].area*dx*dx << "\n";
 		}
 	}
 
@@ -737,7 +739,8 @@ void writeXML(const pluint num_openings, double dx, double shift_x, double shift
 	for (pluint i = 0; i < num_openings; ++i) {
 		if (openings[i].type == 3) { // outlets
 			inletnumber++;
-			myfile << inletnumber << "," << 0.5*(openings[i].innerRadius + openings[i].outerRadius)*dx << "," << openings[i].area*dx*dx << "\n";
+			myfile << inletnumber << "," << openings[i].center[0] << "," << openings[i].center[1] << "," << openings[i].center[2] << "," << 0.5*(openings[i].innerRadius + openings[i].outerRadius)*dx << "," << openings[i].area*dx*dx << "\n";
+			//myfile << inletnumber << "," << 0.5*(openings[i].innerRadius + openings[i].outerRadius)*dx << "," << openings[i].area*dx*dx << "\n";	
 		}
 
 	}

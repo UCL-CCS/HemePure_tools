@@ -44,7 +44,7 @@ libraries    =
 # Compiler to use without MPI parallelism
 serialCXX    = g++
 # Compiler to use with MPI parallelism
-parallelCXX  = mpiCC
+parallelCXX  = mpicxx
 # General compiler flags (e.g. -Wall to turn on all warnings on g++)
 compileFlags = -Wall -Wno-unused-variable -Wnon-virtual-dtor -Wno-deprecated -std=c++11 #-no-pie
 # General linker flags (don't put library includes into this flag)
