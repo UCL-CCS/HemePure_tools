@@ -74,8 +74,8 @@ print('total fraction', sum( (areaList[i]*velSum[i]/velCount[i])/qIN for i in ra
 
 #########################
 #Outlets
-velSum = [0.0 for i in range(len(areaList))]
-velCount = [0 for i in range(len(areaList))]
+#velSum = [0.0 for i in range(len(areaList))]
+#velCount = [0 for i in range(len(areaList))]
 coordsList=[]
 areaList=[]
 
@@ -88,6 +88,9 @@ for i in f:
     coordsList.append([dx*i[1],dx*i[2],dx*i[3]])
     areaList.append(i[5])
 f.close()
+
+velSum = [0.0 for i in range(len(areaList))]
+velCount = [0 for i in range(len(areaList))]
 
 observed=observed.replace('in','out')
 print("starting to process", observed)
