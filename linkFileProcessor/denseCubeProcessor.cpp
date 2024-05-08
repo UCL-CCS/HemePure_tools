@@ -77,11 +77,11 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 		localBlockMax = (this_rank + 1) * (sizeDiv + 1) - 1;
 	} else {
 		localBlockMin = sizeRem * (sizeDiv+1) + (this_rank - sizeRem)*sizeDiv;
-		localBlockMax = sizeRem * (sizeDiv+1) + (this_rank + 1 - sizeRem)*(sizeDiv + 1) - 1;
+		localBlockMax = sizeRem * (sizeDiv+1) + (this_rank + 1 - sizeRem)*sizeDiv - 1;
 	}
 	numlocalBlocks = localBlockMax - localBlockMin +1;
 
-	std::cout << "DEBUG: rank " << this_rank << " has " << numlocalBlocks << " blocks with blockMin " << localBlockMin << ", blockMax " << localBlockMax << std::endl;
+	std::cout << "DEBUG: rank " << this_rank << " (sD " << sizeDiv << " sR " << sizeRem << ") has " << numlocalBlocks << " blocks with blockMin " << localBlockMin << ", blockMax " << localBlockMax << std::endl;
 
 	nBlocksX = cube_dimension;
 	nBlocksY = cube_dimension;
@@ -104,7 +104,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 
 	double generate_starttime = MPI_Wtime();
 	
-	for (int b=localBlockMin; b < localBlockMax; b++) {
+	for (int b=localBlockMin; b < localBlockMax+1; b++) {
 
 		uint64_t block_id = b;
 		uint64_t blockX = block_id / (cube_dimension * cube_dimension);
@@ -126,6 +126,12 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 
 		// We will need to store the temporary converted sites
 		std::vector<OutputSite> converted;
+		//
+		//To attempt refactor
+		std::vector<unsigned char> decompressedBuffer(max_buffer_size);
+		std::vector<unsigned char> compressedBuffer(max_buffer_size);
+
+		uint32_t blockUncompressedLen = 0;
 
 		// First set up a map of converted blockinfo 
 		for(int i=0; i < blockSites; i++) {	
@@ -138,8 +144,8 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 			uint64_t x = 8 * blockX + siteX; //global coords
 			uint64_t y = 8 * blockY + siteY;
 			uint64_t z = 8 * blockZ + siteZ;
-
-			OutputSite newsite;
+	
+			OutputSite newsite; 
 			newsite.hasWallNormal = false;
 			newsite.normalX = 0.0;
 			newsite.normalY = 0.0;
@@ -211,26 +217,26 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 				newsite.normalY /= (float) num_intersections;
 				newsite.normalZ /= (float) num_intersections;
 			}
-
+                  //      std::cout << "Debug: rank " << this_rank << " (+1)  block " << b << " bX,bY,bZ "  << blockX << " " << blockY << " " << blockZ << " site " << i << " x,y,z " << x << " " << y << " " << z << std::endl;
 			// do something with the newsite that has been created
 			converted.push_back(newsite);
 			conv_sites[ i ] = &converted[ converted.size()-1 ];	
-		} //sites in block	
+		//#} //sites in block	
 
 		//Here on is the same as linkFileProcessor	
 		// At this point we can encode the conv_sites to XDR
 		// First we need to work out the uncompressed block length
 
-			std::cout << "Debug: rank " << this_rank << " (+1)  converted length " << converted.size() << " conv_site size " << conv_sites.size() << std::endl;
+//			std::cout << "Debug: rank " << this_rank << " (+1)  converted length " << converted.size() << " conv_site size " << conv_sites.size() << std::endl;
 			//
 			//This can be refactored so that all within the single loop of sites.
 		// compression and decompression buffers:
-		std::vector<unsigned char> decompressedBuffer(max_buffer_size);
-		std::vector<unsigned char> compressedBuffer(max_buffer_size);
+		//#std::vector<unsigned char> decompressedBuffer(max_buffer_size);
+		//#std::vector<unsigned char> compressedBuffer(max_buffer_size);
 
-		uint32_t blockUncompressedLen = 0;
+		//#uint32_t blockUncompressedLen = 0;
 
-		for( int i=0; i < blockSites; i++) { 
+		//#for( int i=0; i < blockSites; i++) { 
 			OutputSite* siteptr = conv_sites[i]; 	        	
 		
 			if( siteptr == nullptr ) { // if solid 
@@ -270,9 +276,9 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 					blockUncompressedLen += sizeof(float); // normalZ
 				}
 			}
-			std::cout << "Debug- site buffer loop: rank " << this_rank << " (+1)  sites for block " << b << " site " << i << " " << blockUncompressedLen <<std::endl;
+		//	std::cout << "Debug- site buffer loop: rank " << this_rank << " (+1)  sites for block " << b << " site " << i << " " << blockUncompressedLen << " siteptr " << siteptr << std::endl;
 		}
-		        	std::cout << "Debug- first block loop: rank " << this_rank << " (+1)  buffer length for block " << b <<std::endl;	
+	
 		if( blockUncompressedLen > max_buffer_size ) { 
 			std::cout << "Rank " << this_rank << " : blockUncompressedLen= " << blockUncompressedLen  << " < max_buffer_size = " 
 			<< max_buffer_size <<"\n";
@@ -282,7 +288,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 
 		XDR xdrbs;
 		xdrmem_create(&xdrbs, (char *)decompressedBuffer.data(), blockUncompressedLen, XDR_ENCODE);
-
+	        
 		// Encode the block
 		for(int i=0; i < blockSites; i++) {
 			OutputSite* siteptr = conv_sites[i];
@@ -294,21 +300,27 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 			for( uint32_t link=0; link < 26; link++) {
 
 				// write type of link
-				uint32_t linkType = (*siteptr).links[link].linkType;
+				uint32_t linkType = converted[i].links[link].linkType;
+				//uint32_t linkType = (*siteptr).links[link].linkType;
 				xdr_u_int(&xdrbs, &linkType);
 				switch (linkType) {
 					case 0: // linkType = FLUID (no further data)
 						break;
 					case 1: // linkType = WALL (write distance to nearest obstacle)
-						xdr_float(&xdrbs, &(siteptr->links[link].wallDistance));
+						xdr_float(&xdrbs, &(converted[i].links[link].wallDistance));
+						//xdr_float(&xdrbs, &(siteptr->links[link].wallDistance));
 						break;
 					case 2: // linkType = INLET (write inletID and distance to nearest obstacle
-						xdr_u_int(&xdrbs, &(siteptr->links[link].configID));
-						xdr_float(&xdrbs, &(siteptr->links[link].wallDistance));
+						xdr_u_int(&xdrbs, &(converted[i].links[link].configID));
+						xdr_float(&xdrbs, &(converted[i].links[link].wallDistance));
+						//xdr_u_int(&xdrbs, &(siteptr->links[link].configID));
+						//xdr_float(&xdrbs, &(siteptr->links[link].wallDistance));
 						break;
 					case 3: // linkType = OUTLET (write outletID and distance to nearest obstacle
-						xdr_u_int(&xdrbs, &(siteptr->links[link].configID));
-						xdr_float(&xdrbs, &(siteptr->links[link].wallDistance));
+						xdr_u_int(&xdrbs, &(converted[i].links[link].configID));
+						xdr_float(&xdrbs, &(converted[i].links[link].wallDistance));
+						//xdr_u_int(&xdrbs, &(siteptr->links[link].configID));
+						//xdr_float(&xdrbs, &(siteptr->links[link].wallDistance));
 						break;
 					default:
 						fprintf(stderr, "ERROR: Unrecognised linkType %u on line %d .\n", linkType, __LINE__);
@@ -318,14 +330,19 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 			}
 
 				// state if there are wall normal coordinates to be read (1 for yes)
-			uint32_t hasWallNormal = (siteptr->hasWallNormal == true)? 1: 0;
+			uint32_t hasWallNormal = (converted[i].hasWallNormal == true)? 1: 0;
+			//uint32_t hasWallNormal = (siteptr->hasWallNormal == true)? 1: 0;
 			xdr_u_int(&xdrbs, &hasWallNormal);
 			if (hasWallNormal == 1) {
 				// write wall normal coordinates as separate floats
-				xdr_float(&xdrbs, &(siteptr->normalX));
-				xdr_float(&xdrbs, &(siteptr->normalY));
-				xdr_float(&xdrbs, &(siteptr->normalZ));
+				xdr_float(&xdrbs, &(converted[i].normalX));
+				xdr_float(&xdrbs, &(converted[i].normalY));
+				xdr_float(&xdrbs, &(converted[i].normalZ));
+				//xdr_float(&xdrbs, &(siteptr->normalX));
+				//xdr_float(&xdrbs, &(siteptr->normalY));
+				//xdr_float(&xdrbs, &(siteptr->normalZ));
 			}
+			//std::cout << "Debug- xdr write loop: rank " << this_rank << " (+1)  sites for block " << b << " site " << i << " " << siteIsSimulated << std::endl;
 		}
 
 		xdr_destroy(&xdrbs);
@@ -421,7 +438,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 		global_uncompressed_bytes = global_bytes[1];
 	}
 
-	// The number of non empy blocks localy is just the number of elements in output info
+	// The number of non empty blocks locally is just the number of elements in output info
 	uint64_t global_nonempty_blocks=0;
 	{	
 		uint64_t local_nonempty_blocks = output_info.size();
