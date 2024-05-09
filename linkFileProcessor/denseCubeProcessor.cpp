@@ -117,7 +117,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 		binfo.header.sites = blockSites;
 		binfo.header.blockNumber = b;
 		binfo.header.fileOffset = outbuf_idx; // we will need to add the length of the header block to this
-		output_info.insert( std::pair<uint64_t, ConvertedBlockInfo >( block_id, binfo) );
+		//output_info.insert( std::pair<uint64_t, ConvertedBlockInfo >( block_id, binfo) );
 		
 		std::array<OutputSite*, blockSites> conv_sites;        // The converted sites
 
@@ -387,6 +387,9 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 		binfo.header.bytes = blockCompressedLen;
 		memcpy(&outputBuffer[outbuf_idx], compressedBuffer.data(), blockCompressedLen);
 		outbuf_idx += blockCompressedLen;
+		
+		output_info.insert( std::pair<uint64_t, ConvertedBlockInfo >( block_id, binfo) );
+		//std::cout << "Debug: rank " << this_rank << " (+1) block " << b << " has blockCompressedLen " << blockCompressedLen << std::endl;
 	} 
 	
 	double generate_endtime=MPI_Wtime(); 
