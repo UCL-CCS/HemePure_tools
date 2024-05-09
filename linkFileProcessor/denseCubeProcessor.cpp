@@ -81,7 +81,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 	}
 	numlocalBlocks = localBlockMax - localBlockMin +1;
 
-	std::cout << "DEBUG: rank " << this_rank << " (sD " << sizeDiv << " sR " << sizeRem << ") has " << numlocalBlocks << " blocks with blockMin " << localBlockMin << ", blockMax " << localBlockMax << std::endl;
+	//std::cout << "DEBUG: rank " << this_rank << " (sD " << sizeDiv << " sR " << sizeRem << ") has " << numlocalBlocks << " blocks with blockMin " << localBlockMin << ", blockMax " << localBlockMax << std::endl;
 
 	nBlocksX = cube_dimension;
 	nBlocksY = cube_dimension;
@@ -117,7 +117,6 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 		binfo.header.sites = blockSites;
 		binfo.header.blockNumber = b;
 		binfo.header.fileOffset = outbuf_idx; // we will need to add the length of the header block to this
-		//output_info.insert( std::pair<uint64_t, ConvertedBlockInfo >( block_id, binfo) );
 		
 		std::array<OutputSite*, blockSites> conv_sites;        // The converted sites
 
@@ -126,8 +125,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 
 		// We will need to store the temporary converted sites
 		std::vector<OutputSite> converted;
-		//
-		//To attempt refactor
+		
 		std::vector<unsigned char> decompressedBuffer(max_buffer_size);
 		std::vector<unsigned char> compressedBuffer(max_buffer_size);
 
@@ -217,26 +215,12 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 				newsite.normalY /= (float) num_intersections;
 				newsite.normalZ /= (float) num_intersections;
 			}
-                  //      std::cout << "Debug: rank " << this_rank << " (+1)  block " << b << " bX,bY,bZ "  << blockX << " " << blockY << " " << blockZ << " site " << i << " x,y,z " << x << " " << y << " " << z << std::endl;
+               
 			// do something with the newsite that has been created
 			converted.push_back(newsite);
 			conv_sites[ i ] = &converted[ converted.size()-1 ];	
-		//#} //sites in block	
-
-		//Here on is the same as linkFileProcessor	
-		// At this point we can encode the conv_sites to XDR
-		// First we need to work out the uncompressed block length
-
-//			std::cout << "Debug: rank " << this_rank << " (+1)  converted length " << converted.size() << " conv_site size " << conv_sites.size() << std::endl;
-			//
-			//This can be refactored so that all within the single loop of sites.
-		// compression and decompression buffers:
-		//#std::vector<unsigned char> decompressedBuffer(max_buffer_size);
-		//#std::vector<unsigned char> compressedBuffer(max_buffer_size);
-
-		//#uint32_t blockUncompressedLen = 0;
-
-		//#for( int i=0; i < blockSites; i++) { 
+		
+			// At this point we can encode the conv_sites to XDR
 			OutputSite* siteptr = conv_sites[i]; 	        	
 		
 			if( siteptr == nullptr ) { // if solid 
@@ -276,7 +260,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 					blockUncompressedLen += sizeof(float); // normalZ
 				}
 			}
-		//	std::cout << "Debug- site buffer loop: rank " << this_rank << " (+1)  sites for block " << b << " site " << i << " " << blockUncompressedLen << " siteptr " << siteptr << std::endl;
+
 		}
 	
 		if( blockUncompressedLen > max_buffer_size ) { 
@@ -342,7 +326,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 				//xdr_float(&xdrbs, &(siteptr->normalY));
 				//xdr_float(&xdrbs, &(siteptr->normalZ));
 			}
-			//std::cout << "Debug- xdr write loop: rank " << this_rank << " (+1)  sites for block " << b << " site " << i << " " << siteIsSimulated << std::endl;
+
 		}
 
 		xdr_destroy(&xdrbs);
@@ -389,7 +373,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 		outbuf_idx += blockCompressedLen;
 		
 		output_info.insert( std::pair<uint64_t, ConvertedBlockInfo >( block_id, binfo) );
-		//std::cout << "Debug: rank " << this_rank << " (+1) block " << b << " has blockCompressedLen " << blockCompressedLen << std::endl;
+
 	} 
 	
 	double generate_endtime=MPI_Wtime(); 
@@ -450,6 +434,7 @@ void generateData(uint64_t cube_dimension, const std::string& output_filename)
 
 	if ( this_rank == 0 ) { 
 		std::cout << "Global Nonempty Blocks = " << global_nonempty_blocks << "\n";
+		std::cout << "(INFO) Total Sites = " << global_nonempty_blocks *512 << "\n";
 		std::cout << "Total Uncompressed bytes = " << global_uncompressed_bytes << " = "
 				  << (double)global_uncompressed_bytes/(double)(1024*1024) << " MiB\n";
 
