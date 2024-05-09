@@ -3,13 +3,19 @@
 # THIRD_PARTY_LICENSES file in the top level directory of this package
 
 CXX=mpicxx
-CXXFLAGS=-O3 -fopenmp -g -ggdb -std=c++17 -I /usr/include/tirpc
+# CXXFLAGS=-O3 -fopenmp -g -ggdb -std=c++17 -I /usr/include/tirpc
+CXXFLAGS=-O3 -fopenmp -g -ggdb -std=c++17 
 
-all: linkFileProcessor
+all: linkFileProcessor denseCubeProcessor
 
 linkFileProcessor: linkFileProcessor.cpp raw_data_reader.hpp gmy.h
-	$(CXX) $(CXXFLAGS) -o $@ $< -ltirpc -lz
+	$(CXX) $(CXXFLAGS) -o $@ $< -lz
+	# $(CXX) $(CXXFLAGS) -o $@ $< -ltirpc -lz
+
+denseCubeProcessor: denseCubeProcessor.cpp raw_data_reader.hpp gmy.h
+	$(CXX) $(CXXFLAGS) -o $@ $< -lz
+	# $(CXX) $(CXXFLAGS) -o $@ $< -ltirpc -lz
 
 clean:
-	rm -f linkFileProcessor
+	rm -f linkFileProcessor denseCubeProcessor
 
