@@ -21,9 +21,9 @@ dx=0.0001
 dt=0.00008
 
 trueInletIndex=5
-maxVelIN=0.01
+maxVelIN=0.02
 
-knownRates=[(6,0.2),(7,0.06),(10,0.05),(65,0.01),(51,0.01),(60,0.01),(52,0.01),(50,0.01),(55,0.01),(42,0.01)]
+knownRates=[(6,0.06),(8,0.05),(11,0.01),(21,0.01),(23,0.01),(12,0.03),(16,0.03),(59,0.01),(73,0.01),(69,0.01),(83,0.01),(78,0.01),(70,0.01),(68,0.01),(7,0.01),(4,0.01)]
 
 outletRate=0.2
 
@@ -33,7 +33,6 @@ outletRate=0.2
 # desired peakVelocity and period based on heartRate. If the simulation
 # time extends beyond one cycle, it will cyclically repeat
 #(from the 'back' for some reason, script accommodates this).
-peakVelocity = 0.4/1.4 #Ultimate maximum velocity [m/s] (throat factor for fistula arteries)
 
 heartRate = 75 # rate in bpm
 totalHeartBeats = 1 # total number of full heartbeats being simulated
@@ -62,7 +61,7 @@ def refine(data,pts):
         X2 = X2 + list(np.linspace(data[i],data[i+1],pts,endpoint=False))
     return X2 + [data[-1]]
 
-def writeScaledProfile(filename,maxVel,area,baseProfile):
+def generateTotalProfile(baseProfile):
     f = open(baseProfile, "r")
     X=[]
     Y=[]
@@ -86,32 +85,37 @@ def writeScaledProfile(filename,maxVel,area,baseProfile):
         Xr = refine(movingaverage(Xr,8),10)
         Yr = refine(movingaverage(Yr,8),10)
 
-
-    print("mean velocity ", 0.5*maxVel*np.average(Yr), "m/s")
-    print("mean flow rate ", 0.5*maxVel*np.average(Yr)*area*6e7, "mL/min")
-
     maxR = max(Xr)
     Xr = [60*Xr[i]/(heartRate*maxR) for i in range(len(Xr))] #scale for rate
     maxR = max(Yr)
-    Yr = [maxVel*Yr[i]/maxR for i in range(len(Yr))] #scale for Velocity
+    Yr = [Yr[i]/maxR for i in range(len(Yr))] #scale for Velocity
 
     Yf = Yr
-
-    f = open(filename,'w')
-    contents = '0.0 0.0\n'
-    contents += str(0.25*warmupTime) + ' ' + str(Yf[0]) + '\n'
 
     Xa.append(0.0); Ya.append(0.0)
     Xa.append(0.25*warmupTime); Ya.append(Yf[0])
     for j in range(totalHeartBeats):
         for i in range(len(Xr)):
-            contents += str(warmupTime + Xr[i] + j*max(Xr)) + ' ' + str(Yf[i]) + '\n'
             Xa.append(warmupTime + Xr[i] + j*max(Xr))
             Ya.append(Yf[i])
+
+    return Xa, Ya
+
+def writeScaledProfile(filename,maxVel,area,baseX,baseY):
+
+    print("mean velocity ", 0.5*maxVel*np.average(baseY), "m/s")
+    print("mean flow rate ", 0.5*maxVel*np.average(baseY)*area*6e7, "mL/min")
+
+    maxR = max(baseY)
+    Yr = [maxVel*baseY[i]/maxR for i in range(len(baseY))] #scale for Velocity
+
+    contents='0.0 0.0\n'
+    f = open(filename,'w')
+    for i in range(1,len(baseX)):
+        contents += str(baseX[i]) + ' ' + str(Yr[i]) + '\n'
     f.write(contents)
     f.close()
 
-    #plt.plot(Xa,Ya,'.-')
     return 
 
 #######################
@@ -133,10 +137,12 @@ qIN = 0.5*maxVelIN*areaList[trueInletIndex]
 areaSum = sum(areaList) - areaList[trueInletIndex] - sum(areaList[j] for j in knownLets)
 predictedFractions = ''
 
+bX, bY = generateTotalProfile("Flow_heartbeat.txt")
+
 for i in range(len(areaList)):
     
     if i==trueInletIndex:
-        writeScaledProfile(filename.replace('0',str(i)),maxVelIN,areaList[i],"Flow_heartbeat.txt")
+        writeScaledProfile(filename.replace('0',str(i)),maxVelIN,areaList[i],bX,bY)
         predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(1.0) + ' ' + str(areaList[i]) + '\n'
     elif i in knownLets:
         vmax = 2.0*knownRates[knownLets.index(i)][1]*qIN/areaList[i]
@@ -144,8 +150,8 @@ for i in range(len(areaList)):
         if vmax>globalVMax:
             globalVMax = vmax
 
-        print(i,vmax )
-        writeScaledProfile(filename.replace('0',str(i)),-1.0*vmax,areaList[i],"Flow_heartbeat.txt")
+        print(i)
+        writeScaledProfile(filename.replace('0',str(i)),-1.0*vmax,areaList[i],bX,bY)
         predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(knownRates[knownLets.index(i)][1]) + ' ' + str(areaList[i]) + '\n'
     else:
         #vmax = 2.0*(1.0 - outletRate - totalKnown)*qIN/(areaList[i]*(len(areaList)-len(knownLets)-1)) #even distribution of flow to unassigned outlets
@@ -153,8 +159,8 @@ for i in range(len(areaList)):
 
         if vmax>globalVMax:
             globalVMax = vmax
-        print(i,vmax)
-        writeScaledProfile(filename.replace('0',str(i)),-1.0*vmax,areaList[i],"Flow_heartbeat.txt") 
+        print(i)
+        writeScaledProfile(filename.replace('0',str(i)),-1.0*vmax,areaList[i],bX,bY) 
         predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(0.5*vmax*areaList[i]/qIN) + ' ' + str(areaList[i]) + '\n'
 
 with open("PredictedFlowFractions.txt", "w") as outxml:
