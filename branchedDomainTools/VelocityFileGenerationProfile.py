@@ -27,6 +27,7 @@ knownRates=[(6,0.06),(8,0.05),(11,0.01),(21,0.01),(23,0.01),(12,0.03),(16,0.03),
 
 outletRate=0.2
 
+wavespeed=8.0 #m/s PWV is linked to cardiovascular disease and can vary widely depending on where measured and age
 
 #Base profile, Flow_heartbeat.txt, has peak of 1m/s and cycle time of 1s (=60bpm)
 #This script will generate a MESH0_INLET0_VELOCITY.txt file scaled to
@@ -38,6 +39,8 @@ heartRate = 75 # rate in bpm
 totalHeartBeats = 1 # total number of full heartbeats being simulated
 #filename='InletProfile'+"_hRate"+str(heartRate)+"_MaxV"+str(peakVelocity)+".txt"
 filename = 'INLET0_VELOCITY.txt'
+filenameshift = 'INLET0_SHIFTVELOCITY.txt'
+filenamedelay = 'INLET0_DELAYVELOCITY.txt'
 warmupTime = 0.8 # time in sec of initialisation time
 
 
@@ -102,7 +105,6 @@ def generateTotalProfile(baseProfile):
     return Xa, Ya
 
 def writeScaledProfile(filename,maxVel,area,baseX,baseY):
-
     print("mean velocity ", 0.5*maxVel*np.average(baseY), "m/s")
     print("mean flow rate ", 0.5*maxVel*np.average(baseY)*area*6e7, "mL/min")
 
@@ -110,9 +112,60 @@ def writeScaledProfile(filename,maxVel,area,baseX,baseY):
     Yr = [maxVel*baseY[i]/maxR for i in range(len(baseY))] #scale for Velocity
 
     contents='0.0 0.0\n'
-    f = open(filename,'w')
+   
     for i in range(1,len(baseX)):
         contents += str(baseX[i]) + ' ' + str(Yr[i]) + '\n'
+    
+    f = open(filename,'w')
+    f.write(contents)
+    f.close()
+
+    return 
+
+def rotate(li, x):
+  return li[-x % len(li):] + li[:-x % len(li)]
+
+#Delays profile by extending the initialisation period
+def writeScaledDelayedProfile(filename,maxVel,area,delay,baseX,baseY):
+    print("mean velocity ", 0.5*maxVel*np.average(baseY), "m/s")
+    print("mean flow rate ", 0.5*maxVel*np.average(baseY)*area*6e7, "mL/min")
+
+    maxR = max(baseY)
+    Yr = [maxVel*baseY[i]/maxR for i in range(len(baseY))] #scale for Velocity
+   
+    print('delay of', delay, 'sec')
+    contents='0.0 0.0\n'
+    contents += str(baseX[1]) + ' ' + str(Yr[1]) + '\n'
+   
+    for i in range(2,len(baseX)):
+        contents += str(baseX[i]+delay) + ' ' + str(Yr[i]) + '\n'
+    
+    f = open(filename,'w')
+    f.write(contents)
+    f.close()
+
+    return 
+
+#Delays profile by shifting the whole heartbeat portion by delay period
+def writeScaledShiftedProfile(filename,maxVel,area,delay,baseX,baseY):
+    print("mean velocity ", 0.5*maxVel*np.average(baseY), "m/s")
+    print("mean flow rate ", 0.5*maxVel*np.average(baseY)*area*6e7, "mL/min")
+
+    maxR = max(baseY)
+    Yr = [maxVel*baseY[i]/maxR for i in range(len(baseY))] #scale for Velocity
+    print('delay of', delay, 'sec')
+    print('shift by ', np.floor((60*delay/heartRate)*len(Yr[2:])/totalHeartBeats).astype(int), ' steps')
+
+    Yb = rotate(Yr[2:], np.floor((60*delay/heartRate)*len(Yr[2:])/totalHeartBeats).astype(int))
+
+   
+    contents='0.0 0.0\n'
+    contents += str(baseX[1]) + ' ' + str(Yb[0]) + '\n'
+   
+    for i in range(2,len(baseX)):
+        contents += str(baseX[i]) + ' ' + str(Yb[i-2]) + '\n'
+    
+    f = open(filename,'w')
     f.write(contents)
     f.close()
 
@@ -140,9 +193,11 @@ predictedFractions = ''
 bX, bY = generateTotalProfile("Flow_heartbeat.txt")
 
 for i in range(len(areaList)):
-    
+    delay=dx*np.linalg.norm(np.array(coordsList[i])-np.array(coordsList[trueInletIndex]))/wavespeed 
     if i==trueInletIndex:
         writeScaledProfile(filename.replace('0',str(i)),maxVelIN,areaList[i],bX,bY)
+        writeScaledDelayedProfile(filenamedelay.replace('0',str(i)),maxVelIN,areaList[i],delay,bX,bY)
+        writeScaledShiftedProfile(filenameshift.replace('0',str(i)),maxVelIN,areaList[i],delay,bX,bY)
         predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(1.0) + ' ' + str(areaList[i]) + '\n'
     elif i in knownLets:
         vmax = 2.0*knownRates[knownLets.index(i)][1]*qIN/areaList[i]
@@ -152,6 +207,8 @@ for i in range(len(areaList)):
 
         print(i)
         writeScaledProfile(filename.replace('0',str(i)),-1.0*vmax,areaList[i],bX,bY)
+        writeScaledDelayedProfile(filenamedelay.replace('0',str(i)),-1.0*vmax,areaList[i],delay,bX,bY)
+        writeScaledShiftedProfile(filenameshift.replace('0',str(i)),-1.0*vmax,areaList[i],delay,bX,bY)
         predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(knownRates[knownLets.index(i)][1]) + ' ' + str(areaList[i]) + '\n'
     else:
         #vmax = 2.0*(1.0 - outletRate - totalKnown)*qIN/(areaList[i]*(len(areaList)-len(knownLets)-1)) #even distribution of flow to unassigned outlets
@@ -161,6 +218,8 @@ for i in range(len(areaList)):
             globalVMax = vmax
         print(i)
         writeScaledProfile(filename.replace('0',str(i)),-1.0*vmax,areaList[i],bX,bY) 
+        writeScaledDelayedProfile(filenamedelay.replace('0',str(i)),-1.0*vmax,areaList[i],delay,bX,bY) 
+        writeScaledShiftedProfile(filenameshift.replace('0',str(i)),-1.0*vmax,areaList[i],delay,bX,bY) 
         predictedFractions+=str(coordsList[i][0]*dx) + ' '+str(coordsList[i][1]*dx) + ' '+str(coordsList[i][2]*dx) + ' '+str(0.5*vmax*areaList[i]/qIN) + ' ' + str(areaList[i]) + '\n'
 
 with open("PredictedFlowFractions.txt", "w") as outxml:
